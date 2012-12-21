@@ -72,7 +72,7 @@ module Databasedotcom
 
       if ENV['DATABASE_COM_URL']
         url = URI.parse(ENV['DATABASE_COM_URL'])
-        url_options = Hash[url.query.split("&").map{|q| q.split("=")}].symbolize_keys!
+        url_options = Hash[url.query.split("&").map { |q| q.split("=") }].symbolize_keys!
         self.host = url.host
         self.client_id = url_options[:oauth_key]
         self.client_secret = url_options[:oauth_secret]
@@ -156,7 +156,7 @@ module Databasedotcom
     def materialize(classnames)
       classes = (classnames.is_a?(Array) ? classnames : [classnames]).collect do |clazz|
         original_classname = clazz
-        clazz = original_classname[0,1].capitalize + original_classname[1..-1]
+        clazz = original_classname[0, 1].capitalize + original_classname[1..-1]
         unless const_defined_in_module(module_namespace, clazz)
           new_class = module_namespace.const_set(clazz, Class.new(Databasedotcom::Sobject::Sobject))
           new_class.client = self
@@ -168,6 +168,26 @@ module Databasedotcom
       end
 
       classes.length == 1 ? classes.first : classes
+    end
+
+    # Dynamically defines a class for Force.com class name and sets which fields to be queried  _classname_ is a String
+    #
+    #    client.materialize_with_fields("Contact") #=> Contact
+    #    client.materialize_with_fields("Contact", "Id", "FirstName", "LastName") #=> Contact
+    #
+    # The class defined by materialize derive from Sobject, and have getters and setters defined for all the attributes defined by the associated Force.com Sobject.
+    def materialize_with_fields(classname, *field_names)
+      original_classname = classname
+      clazz = original_classname[0, 1].capitalize + original_classname[1..-1]
+
+      unless const_defined_in_module(module_namespace, clazz)
+        new_class = module_namespace.const_set(clazz, Class.new(Databasedotcom::Sobject::Sobject))
+        new_class.client = self
+        new_class.materialize(original_classname, field_names)
+        new_class
+      else
+        module_namespace.const_get(clazz)
+      end
     end
 
     # Returns an Array of Hashes listing the properties for every type of _Sobject_ in the database. Raises SalesForceError if an error occurs.
@@ -351,7 +371,7 @@ module Databasedotcom
       unless response.is_a?(expected_result_class || Net::HTTPSuccess)
         if response.is_a?(Net::HTTPUnauthorized)
           if self.refresh_token
-            response = with_encoded_path_and_checked_response("/services/oauth2/token", { :grant_type => "refresh_token", :refresh_token => self.refresh_token, :client_id => self.client_id, :client_secret => self.client_secret}, :host => self.host) do |encoded_path|
+            response = with_encoded_path_and_checked_response("/services/oauth2/token", {:grant_type => "refresh_token", :refresh_token => self.refresh_token, :client_id => self.client_id, :client_secret => self.client_secret}, :host => self.host) do |encoded_path|
               response = https_request(self.host).post(encoded_path, nil)
               if response.is_a?(Net::HTTPOK)
                 parse_auth_response(response.body)
@@ -359,7 +379,7 @@ module Databasedotcom
               response
             end
           elsif self.username && self.password
-            response = with_encoded_path_and_checked_response("/services/oauth2/token", { :grant_type => "password", :username => self.username, :password => self.password, :client_id => self.client_id, :client_secret => self.client_secret}, :host => self.host) do |encoded_path|
+            response = with_encoded_path_and_checked_response("/services/oauth2/token", {:grant_type => "password", :username => self.username, :password => self.password, :client_id => self.client_id, :client_secret => self.client_secret}, :host => self.host) do |encoded_path|
               response = https_request(self.host).post(encoded_path, nil)
               if response.is_a?(Net::HTTPOK)
                 parse_auth_response(response.body)
@@ -373,7 +393,7 @@ module Databasedotcom
           end
         end
 
-        raise SalesForceError.new(response) unless response.is_a?(expected_result_class ||  Net::HTTPSuccess)
+        raise SalesForceError.new(response) unless response.is_a?(expected_result_class || Net::HTTPSuccess)
       end
 
       response
@@ -388,7 +408,7 @@ module Databasedotcom
     end
 
     def encode_path_with_params(path, parameters={})
-      [URI.escape(path), encode_parameters(parameters)].reject{|el| el.empty?}.join('?')
+      [URI.escape(path), encode_parameters(parameters)].reject { |el| el.empty? }.join('?')
     end
 
     def encode_parameters(parameters={})
@@ -430,7 +450,7 @@ module Databasedotcom
 
     def collection_from(response)
       response = JSON.parse(response)
-      collection_from_hash( response )
+      collection_from_hash(response)
     end
 
     # Converts a Hash of object data into a concrete SObject
@@ -449,10 +469,10 @@ module Databasedotcom
 
         # If reference/lookup field data was fetched, recursively build the child record and apply
         if value.is_a?(Hash) and field['type'] == 'reference' and field["relationshipName"]
-          relation = record_from_hash( value )
-          set_value( new_record, field["relationshipName"], relation, 'reference' )
+          relation = record_from_hash(value)
+          set_value(new_record, field["relationshipName"], relation, 'reference')
 
-        # Apply the raw value for all other field types
+          # Apply the raw value for all other field types
         else
           set_value(new_record, field["name"], value, field["type"]) if field
         end
@@ -466,7 +486,7 @@ module Databasedotcom
         records = data.collect { |rec| self.find(rec["attributes"]["type"], rec["Id"]) }
       else
         records = data["records"].collect do |record|
-          record_from_hash( record )
+          record_from_hash(record)
         end
       end
 

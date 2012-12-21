@@ -463,6 +463,45 @@ describe Databasedotcom::Client do
       end
     end
 
+    describe "#materialize_with_fields" do
+      before do
+        @client.stub(:describe_sobject).and_return({"fields" => [], "bar" => "baz"})
+      end
+      after do
+        Object.send(:remove_const, "AccountThing") if Object.const_defined?("AccountThing")
+      end
+
+      it "dynamically creates a ruby class for the sobject" do
+        clazz = @client.materialize_with_fields("AccountThing", "Name", "ExtraThing")
+        clazz.class.should == Class
+        clazz.superclass.should == Databasedotcom::Sobject::Sobject
+        clazz.name.should == "AccountThing"
+      end
+
+      describe "namespacing" do
+        module TestModule
+        end
+
+        it "places the class in the module specified to the client" do
+          @client.sobject_module = TestModule
+          clazz = @client.materialize_with_fields("AccountThing", "Name", "ExtraThing")
+          clazz.name.should == "TestModule::AccountThing"
+          @client.sobject_module = nil
+        end
+      end
+
+      it "sets the client on the new classes" do
+        clazz = @client.materialize_with_fields("AccountThing", "Name", "ExtraThing")
+        clazz.client.should == @client
+      end
+
+      it "caches the Sobject description on the materialized class" do
+        @client.should_receive(:describe_sobject).with("AccountThing").and_return({"fields" => [], "bar" => "baz"})
+        clazz = @client.materialize_with_fields("AccountThing", "Name", "ExtraThing")
+        clazz.description.should == {"fields" => [], "bar" => "baz"}
+      end
+    end
+
     describe "#describe_sobject" do
       context "with a known sobject type" do
         before do
@@ -880,7 +919,7 @@ describe Databasedotcom::Client do
               @client.update("Whizbang", "rid", {:Name => "update"})
               WebMock.should have_requested(:patch, "https://na1.salesforce.com/services/data/v23.0/sobjects/Whizbang/rid")
             end
-            
+
             it "applies type coercions before serializing" do
               stub_request(:patch, "https://na1.salesforce.com/services/data/v23.0/sobjects/Whizbang/rid").to_return(:body => nil, :status => 204)
               @client.update("Whizbang", "rid", "Date_Field" => Date.civil(2011, 1, 1), "DateTime_Field" => DateTime.civil(2011, 2, 1, 12), "Picklist_Multiselect_Field" => %w(a b))

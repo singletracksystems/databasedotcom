@@ -32,7 +32,7 @@ module Databasedotcom
           hash
         end
       end
-      
+
       # Set attributes of this object, from a hash, in bulk
       def attributes=(attrs)
         attrs.each do |key, value|
@@ -159,12 +159,17 @@ module Databasedotcom
       end
 
       # Materializes the dynamically created Sobject class by adding all attribute accessors for each field as described in the description of the object on Force.com
-      def self.materialize(sobject_name)
+      def self.materialize(sobject_name, query_fields = [])
         self.cattr_accessor :description
         self.cattr_accessor :type_map
         self.cattr_accessor :sobject_name
+        self.cattr_accessor :query_fields
 
         self.sobject_name = sobject_name
+
+        query_fields = ["Id"].concat query_fields if !query_fields.empty?
+        self.query_fields = query_fields.uniq
+
         self.description = self.client.describe_sobject(self.sobject_name)
         self.type_map = {}
 
@@ -172,11 +177,11 @@ module Databasedotcom
 
           # Register normal fields
           name = field["name"]
-          register_field( field["name"], field )
+          register_field(field["name"], field)
 
           # Register relationship fields.
-          if( field["type"] == "reference" and field["relationshipName"] )
-            register_field( field["relationshipName"], field )
+          if (field["type"] == "reference" and field["relationshipName"])
+            register_field(field["relationshipName"], field)
           end
 
         end
@@ -223,7 +228,13 @@ module Databasedotcom
       #    client.materialize("Car")
       #    Car.all    #=>   [#<Car @Id="1", ...>, #<Car @Id="2", ...>, #<Car @Id="3", ...>, ...]
       def self.all
-        self.client.query("SELECT #{self.field_list} FROM #{self.sobject_name}")
+        records = self.client.query("SELECT #{self.field_list} FROM #{self.sobject_name}")
+        results = records.dup.to_a
+
+        while records.next_page?
+          results += records.next_page
+          records = records.next_page
+        end
       end
 
       # Returns a collection of instances of self that match the conditional +where_expr+, which is the WHERE part of a SOQL query.
@@ -332,7 +343,7 @@ module Databasedotcom
 
       private
 
-      def self.register_field( name, field )
+      def self.register_field(name, field)
         public
         attr_accessor name.to_sym
         private
@@ -346,7 +357,8 @@ module Databasedotcom
       end
 
       def self.field_list
-        self.description['fields'].collect { |f| f['name'] }.join(',')
+        field_list = self.query_fields.empty? ? self.description['fields'].collect { |f| f['name'] } : self.query_fields
+        field_list.join(',')
       end
 
       def self.type_map_attr(attr_name, key)

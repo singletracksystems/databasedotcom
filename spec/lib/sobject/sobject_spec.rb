@@ -501,9 +501,9 @@ describe Databasedotcom::Sobject::Sobject do
 
     describe "#attributes" do
       it "returns a hash representing the object state" do
-        attrs = { "Name" => "Jim Bob", "Number_Field" => 42 }
+        attrs = {"Name" => "Jim Bob", "Number_Field" => 42}
         obj = TestClass.new(attrs)
-        attrs.keys.each {|attr| obj.attributes[attr].should == attrs[attr]}
+        attrs.keys.each { |attr| obj.attributes[attr].should == attrs[attr] }
       end
     end
 
@@ -511,7 +511,7 @@ describe Databasedotcom::Sobject::Sobject do
       it "updates the object with the provided attributes" do
         obj = TestClass.new
         obj.Name.should be_nil
-        obj.attributes = { "Name" => "foo" }
+        obj.attributes = {"Name" => "foo"}
         obj.Name.should == "foo"
       end
     end
@@ -532,7 +532,7 @@ describe Databasedotcom::Sobject::Sobject do
 
         it "includes only the createable attributes" do
           @client.should_receive(:create) do |clazz, attrs|
-            attrs.all? {|attr, value| TestClass.createable?(attr).should be_true}
+            attrs.all? { |attr, value| TestClass.createable?(attr).should be_true }
             @obj_double
           end
 
@@ -561,7 +561,7 @@ describe Databasedotcom::Sobject::Sobject do
 
         it "includes only the updateable attributes" do
           @client.should_receive(:update) do |clazz, id, attrs|
-            attrs.all? {|attr, value| TestClass.updateable?(attr).should be_true}
+            attrs.all? { |attr, value| TestClass.updateable?(attr).should be_true }
           end
 
           @obj.save
@@ -582,18 +582,18 @@ describe Databasedotcom::Sobject::Sobject do
             attrs.include?("OwnerId").should be_true
             @obj_double
           end
-          
+
           @obj.save(:exclusions => ["Name"])
         end
-        
+
         it "remove any listed fields from the attributes on update" do
           @obj.Id = "foo"
-          
+
           @client.should_receive(:update) do |clazz, id, attrs|
             attrs.include?("Name").should be_false
             attrs.include?("OwnerId").should be_true
           end
-          
+
           result = @obj.save(:exclusions => ["Name"])
         end
       end
@@ -768,7 +768,7 @@ describe Databasedotcom::Sobject::Sobject do
 
     describe "#reload" do
       before do
-        Databasedotcom::Sobject::Sobject.should_receive(:find).with("foo").and_return(double("sobject", :attributes => { "Id" => "foo", "Name" => "James"}))
+        Databasedotcom::Sobject::Sobject.should_receive(:find).with("foo").and_return(double("sobject", :attributes => {"Id" => "foo", "Name" => "James"}))
       end
 
       it "reloads the object" do
@@ -792,6 +792,36 @@ describe Databasedotcom::Sobject::Sobject do
         obj.Name = "Jerry"
         reloaded_obj = obj.reload
         reloaded_obj.should == obj
+      end
+    end
+  end
+
+  context "with a materialized class with fields" do
+    before do
+      response = JSON.parse(File.read(File.join(File.dirname(__FILE__), "../../fixtures/sobject/sobject_describe_success_response.json")))
+      @client.should_receive(:describe_sobject).with("TestClass").and_return(response)
+      TestClass.materialize("TestClass", ["Name", "ExtraThing"])
+    end
+
+    describe ".query" do
+      it "constructs and submits a SOQL query" do
+        @client.should_receive(:query).with("SELECT Id,Name,ExtraThing FROM TestClass WHERE Id = '1234'").and_return("bar")
+        TestClass.query("Id = '1234'").should == "bar"
+      end
+    end
+
+    describe ".first" do
+      it "constructs and submits a SOQL query" do
+        @client.should_receive(:query).with("SELECT Id,Name,ExtraThing FROM TestClass WHERE Name = 'Test' ORDER BY Id ASC LIMIT 1").and_return(["foo"])
+        TestClass.first("Name = 'Test'").should == "foo"
+      end
+    end
+
+
+    describe ".last" do
+      it "constructs and submits a SOQL query" do
+        @client.should_receive(:query).with("SELECT Id,Name,ExtraThing FROM TestClass WHERE Name = 'Test' ORDER BY Id DESC LIMIT 1").and_return(["foo"])
+        TestClass.last("Name = 'Test'").should == "foo"
       end
     end
   end
