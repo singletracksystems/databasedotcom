@@ -215,6 +215,10 @@ module Databasedotcom
         self.type_map_attr(attr_name, :createable?)
       end
 
+      def self.describe_field(attr_name)
+        self.type_map_attr(attr_name, :decription)
+      end
+
       # Delegates to Client.find with arguments +record_id+ and self
       #
       #    client.materialize("Car")
@@ -350,11 +354,12 @@ module Databasedotcom
         attr_accessor name.to_sym
         private
         self.type_map[name] = {
-          :type => field["type"],
-          :label => field["label"],
-          :picklist_values => field["picklistValues"],
-          :updateable? => field["updateable"],
-          :createable? => field["createable"]
+          type: field["type"],
+          label: field["label"],
+          picklist_values: field["picklistValues"],
+          updateable?: field["updateable"],
+          createable?: field["createable"],
+          decription: field
         }
       end
 

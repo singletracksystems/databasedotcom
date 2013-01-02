@@ -160,8 +160,11 @@ describe Databasedotcom::Sobject::Sobject do
 
     describe ".all" do
       it "returns a paginated enumerable containing all instances" do
-        @client.should_receive(:query).with("SELECT #{@field_names.join(',')} FROM TestClass").and_return("foo")
-        TestClass.all.should == "foo"
+        results = mock('collection')
+        @client.should_receive(:query).with("SELECT #{@field_names.join(',')} FROM TestClass").and_return(results)
+        results.should_receive(:dup).and_return(['foo', 'bar'])
+        results.should_receive(:next_page?).and_return(false)
+        TestClass.all.should == ["foo", "bar"]
       end
     end
 
@@ -692,6 +695,19 @@ describe Databasedotcom::Sobject::Sobject do
       it "raises ArgumentError for unknown attributes" do
         lambda {
           TestClass.createable?("Foobar")
+        }.should raise_error(ArgumentError)
+      end
+    end
+
+    describe ".describe_field" do
+      it "returns the field type for an attribute" do
+        TestClass.describe_field("Picklist_Field")["length"].should == 255
+        TestClass.describe_field("TextAreaLong_Field")["length"].should == 32768
+      end
+
+      it "raises ArgumentError for unknown attributes" do
+        lambda {
+          TestClass.describe_field("Foobar")
         }.should raise_error(ArgumentError)
       end
     end
