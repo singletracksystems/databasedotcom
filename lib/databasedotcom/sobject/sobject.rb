@@ -232,9 +232,11 @@ module Databasedotcom
         results = records.dup.to_a
 
         while records.next_page?
-          results += records.next_page
           records = records.next_page
+          results += records.dup.to_a
         end
+
+        results
       end
 
       # Returns a collection of instances of self that match the conditional +where_expr+, which is the WHERE part of a SOQL query.
