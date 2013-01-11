@@ -248,7 +248,15 @@ module Databasedotcom
       #    client.materialize("Car")
       #    Car.query("Color = 'Blue'")    #=>   [#<Car @Id="1", @Color="Blue", ...>, #<Car @Id="5", @Color="Blue", ...>, ...]
       def self.query(where_expr)
-        self.client.query("SELECT #{self.field_list} FROM #{self.sobject_name} WHERE #{where_expr}")
+        records = self.client.query("SELECT #{self.field_list} FROM #{self.sobject_name} WHERE #{where_expr}")
+        results = records.dup.to_a
+
+        while records.next_page?
+          records = records.next_page
+          results += records.dup.to_a
+        end
+
+        results
       end
 
       # Delegates to Client.search

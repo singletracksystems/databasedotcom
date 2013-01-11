@@ -161,17 +161,20 @@ describe Databasedotcom::Sobject::Sobject do
     describe ".all" do
       it "returns a paginated enumerable containing all instances" do
         results = mock('collection')
-        @client.should_receive(:query).with("SELECT #{@field_names.join(',')} FROM TestClass").and_return(results)
         results.should_receive(:dup).and_return(['foo', 'bar'])
         results.should_receive(:next_page?).and_return(false)
+        @client.should_receive(:query).with("SELECT #{@field_names.join(',')} FROM TestClass").and_return(results)
         TestClass.all.should == ["foo", "bar"]
       end
     end
 
     describe ".query" do
       it "constructs and submits a SOQL query" do
-        @client.should_receive(:query).with("SELECT #{@field_names.join(',')} FROM TestClass WHERE Name = 'foo'").and_return("bar")
-        TestClass.query("Name = 'foo'").should == "bar"
+        results = mock('collection')
+        results.should_receive(:dup).and_return(['bar'])
+        results.should_receive(:next_page?).and_return(false)
+        @client.should_receive(:query).with("SELECT #{@field_names.join(',')} FROM TestClass WHERE Name = 'foo'").and_return(results)
+        TestClass.query("Name = 'foo'").should == ["bar"]
       end
     end
 
@@ -821,8 +824,11 @@ describe Databasedotcom::Sobject::Sobject do
 
     describe ".query" do
       it "constructs and submits a SOQL query" do
-        @client.should_receive(:query).with("SELECT Id,Name,ExtraThing FROM TestClass WHERE Id = '1234'").and_return("bar")
-        TestClass.query("Id = '1234'").should == "bar"
+        results = mock('collection')
+        results.should_receive(:dup).and_return(['foo', 'bar'])
+        results.should_receive(:next_page?).and_return(false)
+        @client.should_receive(:query).with("SELECT Id,Name,ExtraThing FROM TestClass WHERE Id = '1234'").and_return(results)
+        TestClass.query("Id = '1234'").should == ["foo", "bar"]
       end
     end
 
