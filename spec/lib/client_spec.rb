@@ -472,7 +472,7 @@ describe Databasedotcom::Client do
       end
 
       it "dynamically creates a ruby class for the sobject" do
-        clazz = @client.materialize_with_fields("AccountThing", "Name", "ExtraThing")
+        clazz = @client.materialize_with_fields("AccountThing", ["Name", "ExtraThing"])
         clazz.class.should == Class
         clazz.superclass.should == Databasedotcom::Sobject::Sobject
         clazz.name.should == "AccountThing"
@@ -484,20 +484,20 @@ describe Databasedotcom::Client do
 
         it "places the class in the module specified to the client" do
           @client.sobject_module = TestModule
-          clazz = @client.materialize_with_fields("AccountThing", "Name", "ExtraThing")
+          clazz = @client.materialize_with_fields("AccountThing", ["Name", "ExtraThing"])
           clazz.name.should == "TestModule::AccountThing"
           @client.sobject_module = nil
         end
       end
 
       it "sets the client on the new classes" do
-        clazz = @client.materialize_with_fields("AccountThing", "Name", "ExtraThing")
+        clazz = @client.materialize_with_fields("AccountThing", ["Name", "ExtraThing"])
         clazz.client.should == @client
       end
 
       it "caches the Sobject description on the materialized class" do
         @client.should_receive(:describe_sobject).with("AccountThing").and_return({"fields" => [], "bar" => "baz"})
-        clazz = @client.materialize_with_fields("AccountThing", "Name", "ExtraThing")
+        clazz = @client.materialize_with_fields("AccountThing", ["Name", "ExtraThing"])
         clazz.description.should == {"fields" => [], "bar" => "baz"}
       end
     end

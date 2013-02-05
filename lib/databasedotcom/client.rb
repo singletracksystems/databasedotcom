@@ -176,7 +176,7 @@ module Databasedotcom
     #    client.materialize_with_fields("Contact", "Id", "FirstName", "LastName") #=> Contact
     #
     # The class defined by materialize derive from Sobject, and have getters and setters defined for all the attributes defined by the associated Force.com Sobject.
-    def materialize_with_fields(classname, *field_names)
+    def materialize_with_fields(classname, field_names = [])
       original_classname = classname
       clazz = original_classname[0, 1].capitalize + original_classname[1..-1]
 
