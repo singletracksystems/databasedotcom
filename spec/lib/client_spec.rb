@@ -735,6 +735,12 @@ describe Databasedotcom::Client do
             results.first.Text_Field.should == "Hi there!"
           end
 
+          it "fills in the attributes of the returned objects with the values returned from queryAll" do
+            results = @client.query_all("SELECT Checkbox_Label FROM Whizbang")
+            results.first.Checkbox_Field.should be_false
+            results.first.Text_Field.should == "Hi there!"
+          end
+
           it "applies type coercions to the returned attributes" do
             object = @client.query("SELECT Checkbox_Label FROM Whizbang").first
             object.Date_Field.should be_instance_of(Date)
